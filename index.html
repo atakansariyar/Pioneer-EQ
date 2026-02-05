@@ -341,6 +341,10 @@
             display: flex;
         }
 
+        .save-btn-container.visible .save-btn {
+            display: inline-flex;
+        }
+
         .save-btn {
             background: linear-gradient(135deg, #22c55e, #16a34a);
             border: 2px solid #22c55e;
@@ -381,6 +385,96 @@
         .slider-wrapper.selected .freq-label {
             color: var(--accent);
             font-weight: bold;
+        }
+
+        /* Action Buttons (Copy to C1/C2) */
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            padding: 0 16px 16px;
+        }
+
+        .copy-btn {
+            background: linear-gradient(135deg, #6366f1, #4f46e5);
+            border: 2px solid #6366f1;
+            border-radius: 12px;
+            color: white;
+            font-size: 14px;
+            padding: 10px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Popup Modal */
+        .popup-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup-overlay.visible {
+            display: flex;
+        }
+
+        .popup {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 300px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .popup h3 {
+            margin-bottom: 12px;
+            color: var(--accent);
+        }
+
+        .popup p {
+            margin-bottom: 20px;
+            color: var(--text-dim);
+            font-size: 14px;
+        }
+
+        .popup-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+
+        .popup-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .popup-btn.cancel {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+        }
+
+        .popup-btn.confirm {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .popup-btn:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
@@ -428,7 +522,24 @@
         </div>
 
         <div class="response" id="response"></div>
+
+        <div class="action-buttons">
+            <button class="copy-btn" onclick="showCopyConfirm(1)">📋 C1'e Kopyala</button>
+            <button class="copy-btn" onclick="showCopyConfirm(2)">📋 C2'ye Kopyala</button>
+        </div>
     </div><!-- /app-container -->
+
+    <!-- Confirmation Popup -->
+    <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()">
+        <div class="popup" onclick="event.stopPropagation()">
+            <h3>⚠️ Dikkat</h3>
+            <p id="popupMessage">Mevcut C1 ayarları silinecek. Emin misiniz?</p>
+            <div class="popup-buttons">
+                <button class="popup-btn cancel" onclick="hidePopup()">İptal</button>
+                <button class="popup-btn confirm" onclick="confirmCopy()">Evet, Kopyala</button>
+            </div>
+        </div>
+    </div>
 
     <script>
         // BLE Configuration
@@ -861,6 +972,76 @@
             setTimeout(() => {
                 if (el.textContent === msg) el.textContent = '';
             }, 3000);
+        }
+
+        // Copy to Custom Preset
+        let pendingCopyTarget = null;
+
+        function showCopyConfirm(targetNum) {
+            pendingCopyTarget = targetNum;
+            const popupMsg = document.getElementById('popupMessage');
+            popupMsg.textContent = `Mevcut C${targetNum} ayarları silinecek ve yerine şu anki değerler yazılacak. Emin misiniz?`;
+            document.getElementById('popupOverlay').classList.add('visible');
+        }
+
+        function hidePopup() {
+            document.getElementById('popupOverlay').classList.remove('visible');
+            pendingCopyTarget = null;
+        }
+
+        async function confirmCopy() {
+            if (!pendingCopyTarget) return;
+
+            const targetPreset = pendingCopyTarget === 1 ? 'custom1' : 'custom2';
+            const targetName = `C${pendingCopyTarget}`;
+
+            hidePopup();
+
+            // Get current slider values BEFORE any changes
+            const sliders = document.querySelectorAll('.eq-slider');
+            const values = [];
+            sliders.forEach(slider => {
+                values.push(parseInt(slider.value));
+            });
+
+            // Update global preset variables
+            if (pendingCopyTarget === 1) {
+                customPreset1 = [...values];
+            } else {
+                customPreset2 = [...values];
+            }
+
+            // Save to localStorage
+            localStorage.setItem(targetPreset, JSON.stringify(values));
+
+            // Update eqGains with the copied values
+            eqGains = [...values];
+
+            // Update button states (select the target preset button)
+            ['flat', 'bass', 'vocal', 'rock', 'custom1', 'custom2'].forEach(p => {
+                const btn = document.getElementById('btn-' + p);
+                if (btn) btn.classList.toggle('active', p === targetPreset);
+            });
+
+            // Show save button (since we're now on a custom preset)
+            document.getElementById('saveBtnContainer').classList.add('visible');
+
+            // Sliders already show correct values (we haven't changed them)
+            // Just update the display values
+            updateAllSliders();
+
+            // Send to ESP32 if connected
+            if (isConnected && rxCharacteristic) {
+                try {
+                    const cmd = `EQ:${values.join(',')}`;
+                    const encoder = new TextEncoder();
+                    await rxCharacteristic.writeValue(encoder.encode(cmd + '\n'));
+                } catch (e) {
+                    console.log('BLE send failed:', e);
+                }
+            }
+
+            showResponse(`✅ Ayarlar ${targetName}'e kopyalandı!`);
         }
 
         // Init
