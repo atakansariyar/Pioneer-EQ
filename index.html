@@ -312,14 +312,30 @@
             transform: scale(0.95);
         }
 
-        .control-btn.save {
-            background: linear-gradient(135deg, #22c55e, #16a34a);
-            border-color: #22c55e;
+        /* Save Button (separate from controls) */
+        .save-btn-container {
             display: none;
+            justify-content: center;
+            padding: 0 16px 16px;
         }
 
-        .control-btn.save.visible {
+        .save-btn-container.visible {
             display: flex;
+        }
+
+        .save-btn {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border: 2px solid #22c55e;
+            border-radius: 12px;
+            color: white;
+            font-size: 16px;
+            padding: 12px 32px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .save-btn:active {
+            transform: scale(0.95);
         }
 
         .band-display {
@@ -386,7 +402,10 @@
         </div>
         <button class="control-btn" onclick="adjustGain(1)">▲</button>
         <button class="control-btn" onclick="adjustGain(-1)">▼</button>
-        <button class="control-btn save visible" id="saveBtn" onclick="saveCustomPreset()">💾</button>
+    </div>
+
+    <div class="save-btn-container" id="saveBtnContainer">
+        <button class="save-btn" onclick="saveCustomPreset()">💾 Kaydet</button>
     </div>
 
     <div class="response" id="response"></div>
@@ -735,7 +754,7 @@
             });
 
             // Show save button only for custom presets
-            const saveBtn = document.getElementById('saveBtn');
+            const saveBtn = document.getElementById('saveBtnContainer');
             if (name === 'custom1' || name === 'custom2') {
                 saveBtn.classList.add('visible');
             } else {
