@@ -278,6 +278,76 @@
             animation: pulse 1s infinite;
             background: #ffa500;
         }
+
+        /* Control Panel */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-secondary);
+            border-radius: 16px;
+            margin: 0 16px 16px;
+        }
+
+        .control-btn {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: var(--bg-card);
+            color: var(--text);
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .control-btn:active {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(0.95);
+        }
+
+        .control-btn.save {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+            display: none;
+        }
+
+        .control-btn.save.visible {
+            display: flex;
+        }
+
+        .band-display {
+            min-width: 60px;
+            text-align: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        .band-display .freq {
+            font-size: 18px;
+        }
+
+        .band-display .gain {
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        /* Selected band highlight */
+        .slider-wrapper.selected .slider-track {
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        .slider-wrapper.selected .freq-label {
+            color: var(--accent);
+            font-weight: bold;
+        }
     </style>
 </head>
 
@@ -301,11 +371,22 @@
         <button class="preset-btn" id="btn-rock" onclick="sendPreset('rock')">ROCK</button>
         <button class="preset-btn" id="btn-custom1" onclick="sendPreset('custom1')">C1</button>
         <button class="preset-btn" id="btn-custom2" onclick="sendPreset('custom2')">C2</button>
-        <button class="preset-btn save-btn" id="saveBtn" onclick="saveCustomPreset()">💾</button>
     </div>
 
     <div class="eq-container">
         <div class="sliders" id="sliders"></div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn" onclick="selectBand(-1)">◀</button>
+        <button class="control-btn" onclick="selectBand(1)">▶</button>
+        <div class="band-display">
+            <div class="freq" id="selectedFreq">--</div>
+            <div class="gain" id="selectedGain">0 dB</div>
+        </div>
+        <button class="control-btn" onclick="adjustGain(1)">▲</button>
+        <button class="control-btn" onclick="adjustGain(-1)">▼</button>
+        <button class="control-btn save visible" id="saveBtn" onclick="saveCustomPreset()">💾</button>
     </div>
 
     <div class="response" id="response"></div>
@@ -330,6 +411,7 @@
         let debounceTimers = new Array(16).fill(null);
         let connectionTimeout = null;
         let activePreset = null;  // 'flat', 'bass', 'vocal', 'rock', 'custom1', 'custom2'
+        let selectedBand = 0;  // Currently selected band for arrow controls (0-15)
 
         // Initialize sliders
         function initSliders() {
@@ -384,6 +466,9 @@
             // Touch events
             track.addEventListener('touchstart', (e) => {
                 isActive = true;
+                selectedBand = index;
+                highlightSelectedBand();
+                updateBandDisplay();
                 handleMove(e.touches[0].clientY);
             }, { passive: true });
 
@@ -399,6 +484,9 @@
             // Mouse events
             track.addEventListener('mousedown', (e) => {
                 isActive = true;
+                selectedBand = index;
+                highlightSelectedBand();
+                updateBandDisplay();
                 handleMove(e.clientY);
             });
 
@@ -444,6 +532,39 @@
             for (let i = 0; i < 16; i++) {
                 updateSlider(i);
             }
+            highlightSelectedBand();
+            updateBandDisplay();
+        }
+
+        // Band selection for arrow controls
+        function selectBand(delta) {
+            selectedBand = (selectedBand + delta + 16) % 16;
+            highlightSelectedBand();
+            updateBandDisplay();
+        }
+
+        function adjustGain(delta) {
+            const newValue = Math.max(-18, Math.min(18, eqGains[selectedBand] + delta));
+            if (newValue !== eqGains[selectedBand]) {
+                eqGains[selectedBand] = newValue;
+                updateSlider(selectedBand);
+                updateBandDisplay();
+                debounceSend(selectedBand);
+            }
+        }
+
+        function highlightSelectedBand() {
+            const wrappers = document.querySelectorAll('.slider-wrapper');
+            wrappers.forEach((w, i) => {
+                w.classList.toggle('selected', i === selectedBand);
+            });
+        }
+
+        function updateBandDisplay() {
+            document.getElementById('selectedFreq').textContent = bandNames[selectedBand];
+            const gain = eqGains[selectedBand];
+            document.getElementById('selectedGain').textContent =
+                (gain > 0 ? '+' : '') + gain + ' dB';
         }
 
         // Debounced send
