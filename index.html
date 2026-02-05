@@ -130,10 +130,20 @@
             transition: all 0.2s;
         }
 
-        .preset-btn:active {
+        .preset-btn.active {
             background: var(--accent);
             border-color: var(--accent);
-            transform: scale(0.95);
+            box-shadow: 0 0 15px var(--accent-glow);
+        }
+
+        .save-btn {
+            display: none;
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            border-color: #22c55e;
+        }
+
+        .save-btn.visible {
+            display: block;
         }
 
         /* EQ Container */
@@ -285,14 +295,13 @@
     </button>
 
     <div class="presets">
-        <button class="preset-btn" onclick="sendPreset('flat')">FLAT</button>
-        <button class="preset-btn" onclick="sendPreset('bass')">BASS+</button>
-        <button class="preset-btn" onclick="sendPreset('vocal')">VOCAL</button>
-        <button class="preset-btn" onclick="sendPreset('rock')">ROCK</button>
-        <button class="preset-btn custom-btn" onclick="sendPreset('custom1')">C1</button>
-        <button class="preset-btn save-btn" onclick="saveCustomPreset(1)">💾1</button>
-        <button class="preset-btn custom-btn" onclick="sendPreset('custom2')">C2</button>
-        <button class="preset-btn save-btn" onclick="saveCustomPreset(2)">💾2</button>
+        <button class="preset-btn" id="btn-flat" onclick="sendPreset('flat')">FLAT</button>
+        <button class="preset-btn" id="btn-bass" onclick="sendPreset('bass')">BASS+</button>
+        <button class="preset-btn" id="btn-vocal" onclick="sendPreset('vocal')">VOCAL</button>
+        <button class="preset-btn" id="btn-rock" onclick="sendPreset('rock')">ROCK</button>
+        <button class="preset-btn" id="btn-custom1" onclick="sendPreset('custom1')">C1</button>
+        <button class="preset-btn" id="btn-custom2" onclick="sendPreset('custom2')">C2</button>
+        <button class="preset-btn save-btn" id="saveBtn" onclick="saveCustomPreset()">💾</button>
     </div>
 
     <div class="eq-container">
@@ -320,6 +329,7 @@
         let customPreset2 = new Array(16).fill(0);
         let debounceTimers = new Array(16).fill(null);
         let connectionTimeout = null;
+        let activePreset = null;  // 'flat', 'bass', 'vocal', 'rock', 'custom1', 'custom2'
 
         // Initialize sliders
         function initSliders() {
@@ -594,6 +604,23 @@
         function sendPreset(name) {
             sendCommand(name);
 
+            // Set active preset
+            activePreset = name;
+
+            // Update button states
+            ['flat', 'bass', 'vocal', 'rock', 'custom1', 'custom2'].forEach(p => {
+                const btn = document.getElementById('btn-' + p);
+                if (btn) btn.classList.toggle('active', p === name);
+            });
+
+            // Show save button only for custom presets
+            const saveBtn = document.getElementById('saveBtn');
+            if (name === 'custom1' || name === 'custom2') {
+                saveBtn.classList.add('visible');
+            } else {
+                saveBtn.classList.remove('visible');
+            }
+
             // Update local state based on preset
             const presets = {
                 'flat': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -614,14 +641,21 @@
             }
         }
 
-        function saveCustomPreset(slot) {
+        function saveCustomPreset() {
             // Check connection first!
             if (!isConnected || !rxCharacteristic) {
                 showResponse('❌ Bağlı değil! Önce bağlan.');
                 return;
             }
 
-            // Save current EQ as custom preset
+            // Must have a custom preset selected
+            if (activePreset !== 'custom1' && activePreset !== 'custom2') {
+                showResponse('❌ Önce C1 veya C2 seç');
+                return;
+            }
+
+            // Save current EQ as the active custom preset
+            const slot = activePreset === 'custom1' ? 1 : 2;
             if (slot === 1) {
                 customPreset1 = [...eqGains];
             } else {
