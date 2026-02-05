@@ -26,12 +26,30 @@
             -webkit-tap-highlight-color: transparent;
         }
 
+        html,
+        body {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            overscroll-behavior: none;
+            touch-action: none;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
             background: var(--bg-primary);
             color: var(--text);
-            min-height: 100vh;
+        }
+
+        /* App container - scrollable content */
+        .app-container {
+            height: 100%;
+            overflow-y: auto;
             overflow-x: hidden;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
         }
 
         /* Header */
@@ -368,47 +386,49 @@
 </head>
 
 <body>
-    <div class="header">
-        <div class="logo">PIONEER EQ</div>
-        <div class="status">
-            <span class="status-dot" id="statusDot"></span>
-            <span id="statusText">Bağlı Değil</span>
+    <div class="app-container">
+        <div class="header">
+            <div class="logo">PIONEER EQ</div>
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Bağlı Değil</span>
+            </div>
         </div>
-    </div>
 
-    <button class="connect-btn" id="connectBtn" onclick="toggleConnection()">
-        🔗 Bağlan
-    </button>
+        <button class="connect-btn" id="connectBtn" onclick="toggleConnection()">
+            🔗 Bağlan
+        </button>
 
-    <div class="presets">
-        <button class="preset-btn" id="btn-flat" onclick="sendPreset('flat')">FLAT</button>
-        <button class="preset-btn" id="btn-bass" onclick="sendPreset('bass')">BASS+</button>
-        <button class="preset-btn" id="btn-vocal" onclick="sendPreset('vocal')">VOCAL</button>
-        <button class="preset-btn" id="btn-rock" onclick="sendPreset('rock')">ROCK</button>
-        <button class="preset-btn" id="btn-custom1" onclick="sendPreset('custom1')">C1</button>
-        <button class="preset-btn" id="btn-custom2" onclick="sendPreset('custom2')">C2</button>
-    </div>
-
-    <div class="eq-container">
-        <div class="sliders" id="sliders"></div>
-    </div>
-
-    <div class="controls">
-        <button class="control-btn" onclick="selectBand(-1)">◀</button>
-        <button class="control-btn" onclick="selectBand(1)">▶</button>
-        <div class="band-display">
-            <div class="freq" id="selectedFreq">--</div>
-            <div class="gain" id="selectedGain">0 dB</div>
+        <div class="presets">
+            <button class="preset-btn" id="btn-flat" onclick="sendPreset('flat')">FLAT</button>
+            <button class="preset-btn" id="btn-bass" onclick="sendPreset('bass')">BASS+</button>
+            <button class="preset-btn" id="btn-vocal" onclick="sendPreset('vocal')">VOCAL</button>
+            <button class="preset-btn" id="btn-rock" onclick="sendPreset('rock')">ROCK</button>
+            <button class="preset-btn" id="btn-custom1" onclick="sendPreset('custom1')">C1</button>
+            <button class="preset-btn" id="btn-custom2" onclick="sendPreset('custom2')">C2</button>
         </div>
-        <button class="control-btn" onclick="adjustGain(1)">▲</button>
-        <button class="control-btn" onclick="adjustGain(-1)">▼</button>
-    </div>
 
-    <div class="save-btn-container" id="saveBtnContainer">
-        <button class="save-btn" onclick="saveCustomPreset()">💾 Kaydet</button>
-    </div>
+        <div class="eq-container">
+            <div class="sliders" id="sliders"></div>
+        </div>
 
-    <div class="response" id="response"></div>
+        <div class="controls">
+            <button class="control-btn" onclick="selectBand(-1)">◀</button>
+            <button class="control-btn" onclick="selectBand(1)">▶</button>
+            <div class="band-display">
+                <div class="freq" id="selectedFreq">--</div>
+                <div class="gain" id="selectedGain">0 dB</div>
+            </div>
+            <button class="control-btn" onclick="adjustGain(1)">▲</button>
+            <button class="control-btn" onclick="adjustGain(-1)">▼</button>
+        </div>
+
+        <div class="save-btn-container" id="saveBtnContainer">
+            <button class="save-btn" onclick="saveCustomPreset()">💾 Kaydet</button>
+        </div>
+
+        <div class="response" id="response"></div>
+    </div><!-- /app-container -->
 
     <script>
         // BLE Configuration
