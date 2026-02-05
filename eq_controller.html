@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Pioneer EQ Controller</title>
+    <style>
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #1a1a24;
+            --accent: #00d4ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --positive: #00ff88;
+            --negative: #ff4466;
+            --text: #ffffff;
+            --text-dim: #8888aa;
+            --slider-track: #2a2a3a;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-card) 100%);
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), #a855f7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-dim);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ff4466;
+            transition: all 0.3s;
+        }
+
+        .status-dot.connected {
+            background: var(--positive);
+            box-shadow: 0 0 10px var(--positive);
+        }
+
+        /* Connect Button */
+        .connect-btn {
+            background: linear-gradient(135deg, var(--accent), #a855f7);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 16px auto;
+            display: block;
+            transition: all 0.3s;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+        .connect-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 30px var(--accent-glow);
+        }
+
+        .connect-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .connect-btn.connected {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+        }
+
+        /* Presets */
+        .presets {
+            display: flex;
+            gap: 8px;
+            padding: 12px 16px;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .preset-btn {
+            flex-shrink: 0;
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .preset-btn:active {
+            background: var(--accent);
+            border-color: var(--accent);
+            transform: scale(0.95);
+        }
+
+        /* EQ Container */
+        .eq-container {
+            padding: 16px 8px 32px;
+        }
+
+        /* Sliders Grid */
+        .sliders {
+            display: flex;
+            justify-content: space-between;
+            gap: 2px;
+            padding: 0 4px;
+        }
+
+        .slider-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            max-width: 24px;
+        }
+
+        /* Value Label */
+        .value-label {
+            font-size: 9px;
+            color: var(--text-dim);
+            height: 16px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .value-label.positive {
+            color: var(--positive);
+        }
+
+        .value-label.negative {
+            color: var(--negative);
+        }
+
+        /* Vertical Slider */
+        .slider-track {
+            width: 6px;
+            height: 180px;
+            background: var(--slider-track);
+            border-radius: 3px;
+            position: relative;
+            cursor: pointer;
+            touch-action: none;
+        }
+
+        .slider-fill {
+            position: absolute;
+            left: 0;
+            right: 0;
+            border-radius: 3px;
+            transition: all 0.1s;
+        }
+
+        .slider-fill.positive {
+            background: linear-gradient(to top, var(--positive), rgba(0, 255, 136, 0.5));
+            bottom: 50%;
+        }
+
+        .slider-fill.negative {
+            background: linear-gradient(to bottom, var(--negative), rgba(255, 68, 102, 0.5));
+            top: 50%;
+        }
+
+        .slider-thumb {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background: white;
+            border-radius: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+            transition: transform 0.1s;
+        }
+
+        .slider-thumb:active {
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .zero-line {
+            position: absolute;
+            left: -2px;
+            right: -2px;
+            top: 50%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        /* Frequency Label */
+        .freq-label {
+            font-size: 8px;
+            color: var(--text-dim);
+            margin-top: 8px;
+            text-align: center;
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            height: 28px;
+        }
+
+        /* Response Message */
+        .response {
+            text-align: center;
+            font-size: 12px;
+            color: var(--accent);
+            padding: 8px;
+            min-height: 24px;
+            font-family: monospace;
+        }
+
+        /* Animations */
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .connecting .status-dot {
+            animation: pulse 1s infinite;
+            background: #ffa500;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="logo">PIONEER EQ</div>
+        <div class="status">
+            <span class="status-dot" id="statusDot"></span>
+            <span id="statusText">Bağlı Değil</span>
+        </div>
+    </div>
+
+    <button class="connect-btn" id="connectBtn" onclick="toggleConnection()">
+        🔗 Bağlan
+    </button>
+
+    <div class="presets">
+        <button class="preset-btn" onclick="sendPreset('flat')">FLAT</button>
+        <button class="preset-btn" onclick="sendPreset('bass')">BASS+</button>
+        <button class="preset-btn" onclick="sendPreset('vocal')">VOCAL</button>
+        <button class="preset-btn" onclick="sendPreset('rock')">ROCK</button>
+        <button class="preset-btn custom-btn" onclick="sendPreset('custom1')">C1</button>
+        <button class="preset-btn save-btn" onclick="saveCustomPreset(1)">💾1</button>
+        <button class="preset-btn custom-btn" onclick="sendPreset('custom2')">C2</button>
+        <button class="preset-btn save-btn" onclick="saveCustomPreset(2)">💾2</button>
+    </div>
+
+    <div class="eq-container">
+        <div class="sliders" id="sliders"></div>
+    </div>
+
+    <div class="response" id="response"></div>
+
+    <script>
+        // BLE Configuration
+        const SERVICE_UUID = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+        const CHAR_RX_UUID = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+        const CHAR_TX_UUID = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+        // State
+        let device = null;
+        let rxCharacteristic = null;
+        let txCharacteristic = null;
+        let isConnected = false;
+
+        // EQ Data
+        const bandNames = ['32', '64', '100', '160', '250', '400', '630', '1k', '1.6k', '2.5k', '4k', '6.3k', '10k', '12k', '14k', '16k'];
+        let eqGains = new Array(16).fill(0);
+        let customPreset1 = new Array(16).fill(0);
+        let customPreset2 = new Array(16).fill(0);
+        let debounceTimers = new Array(16).fill(null);
+        let connectionTimeout = null;
+
+        // Initialize sliders
+        function initSliders() {
+            const container = document.getElementById('sliders');
+            container.innerHTML = '';
+
+            bandNames.forEach((name, i) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'slider-wrapper';
+                wrapper.innerHTML = `
+                    <div class="value-label" id="val${i}">0</div>
+                    <div class="slider-track" id="track${i}">
+                        <div class="zero-line"></div>
+                        <div class="slider-fill" id="fill${i}"></div>
+                        <div class="slider-thumb" id="thumb${i}"></div>
+                    </div>
+                    <div class="freq-label">${name}</div>
+                `;
+                container.appendChild(wrapper);
+
+                // Touch/Mouse handlers
+                const track = wrapper.querySelector('.slider-track');
+                setupSliderEvents(track, i);
+            });
+
+            // Initial render
+            updateAllSliders();
+        }
+
+        function setupSliderEvents(track, index) {
+            let isActive = false;
+
+            const getValueFromY = (y, rect) => {
+                const percent = (y - rect.top) / rect.height;
+                // Invert: top = +18, bottom = -18
+                const value = 18 - (percent * 36);
+                return Math.round(Math.max(-18, Math.min(18, value)));
+            };
+
+            const handleMove = (clientY) => {
+                if (!isActive) return;
+                const rect = track.getBoundingClientRect();
+                const newValue = getValueFromY(clientY, rect);
+
+                if (eqGains[index] !== newValue) {
+                    eqGains[index] = newValue;
+                    updateSlider(index);
+                    debounceSend(index);
+                }
+            };
+
+            // Touch events
+            track.addEventListener('touchstart', (e) => {
+                isActive = true;
+                handleMove(e.touches[0].clientY);
+            }, { passive: true });
+
+            track.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                handleMove(e.touches[0].clientY);
+            }, { passive: false });
+
+            track.addEventListener('touchend', () => {
+                isActive = false;
+            });
+
+            // Mouse events
+            track.addEventListener('mousedown', (e) => {
+                isActive = true;
+                handleMove(e.clientY);
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (isActive) handleMove(e.clientY);
+            });
+
+            document.addEventListener('mouseup', () => {
+                isActive = false;
+            });
+        }
+
+        function updateSlider(index) {
+            const value = eqGains[index];
+            const fill = document.getElementById(`fill${index}`);
+            const thumb = document.getElementById(`thumb${index}`);
+            const label = document.getElementById(`val${index}`);
+
+            // Calculate thumb position (0-100%, where 50% = 0dB)
+            const percent = ((18 - value) / 36) * 100;
+            thumb.style.top = `${percent}%`;
+
+            // Update fill
+            const absPercent = (Math.abs(value) / 18) * 50;
+            fill.className = 'slider-fill ' + (value >= 0 ? 'positive' : 'negative');
+
+            if (value >= 0) {
+                fill.style.height = `${absPercent}%`;
+                fill.style.bottom = '50%';
+                fill.style.top = '';
+            } else {
+                fill.style.height = `${absPercent}%`;
+                fill.style.top = '50%';
+                fill.style.bottom = '';
+            }
+
+            // Update label
+            label.textContent = value > 0 ? `+${value}` : value;
+            label.className = 'value-label ' + (value > 0 ? 'positive' : value < 0 ? 'negative' : '');
+        }
+
+        function updateAllSliders() {
+            for (let i = 0; i < 16; i++) {
+                updateSlider(i);
+            }
+        }
+
+        // Debounced send
+        function debounceSend(index) {
+            if (debounceTimers[index]) {
+                clearTimeout(debounceTimers[index]);
+            }
+            debounceTimers[index] = setTimeout(() => {
+                sendCommand(`B${index}:${eqGains[index]}`);
+            }, 100);
+        }
+
+        // BLE Connection
+        async function toggleConnection() {
+            if (isConnected) {
+                disconnect();
+            } else {
+                await connect();
+            }
+        }
+
+        async function connect() {
+            try {
+                updateStatus('connecting');
+                document.getElementById('connectBtn').disabled = true;
+
+                // Set connection timeout (10 seconds)
+                connectionTimeout = setTimeout(() => {
+                    if (!isConnected) {
+                        updateStatus('disconnected');
+                        document.getElementById('connectBtn').disabled = false;
+                        showResponse('Bağlantı zaman aşımı');
+                    }
+                }, 10000);
+
+                device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'Pioneer_EQ' }],
+                    optionalServices: [SERVICE_UUID]
+                });
+
+                device.addEventListener('gattserverdisconnected', onDisconnected);
+
+                const server = await device.gatt.connect();
+                const service = await server.getPrimaryService(SERVICE_UUID);
+
+                rxCharacteristic = await service.getCharacteristic(CHAR_RX_UUID);
+                txCharacteristic = await service.getCharacteristic(CHAR_TX_UUID);
+
+                // Start notifications
+                await txCharacteristic.startNotifications();
+                txCharacteristic.addEventListener('characteristicvaluechanged', onNotification);
+
+                // Clear timeout on success
+                if (connectionTimeout) {
+                    clearTimeout(connectionTimeout);
+                    connectionTimeout = null;
+                }
+
+                isConnected = true;
+                updateStatus('connected');
+
+                // Request current EQ state
+                setTimeout(() => sendCommand('GETALL'), 500);
+
+            } catch (error) {
+                console.error('Connection error:', error);
+                if (connectionTimeout) {
+                    clearTimeout(connectionTimeout);
+                    connectionTimeout = null;
+                }
+                updateStatus('disconnected');
+                if (error.name !== 'NotFoundError') {
+                    showResponse('Bağlantı hatası: ' + error.message);
+                }
+            }
+
+            document.getElementById('connectBtn').disabled = false;
+        }
+
+        function disconnect() {
+            if (device && device.gatt.connected) {
+                device.gatt.disconnect();
+            }
+            onDisconnected();
+        }
+
+        function onDisconnected() {
+            isConnected = false;
+            rxCharacteristic = null;
+            txCharacteristic = null;
+            if (connectionTimeout) {
+                clearTimeout(connectionTimeout);
+                connectionTimeout = null;
+            }
+            updateStatus('disconnected');
+        }
+
+        function onNotification(event) {
+            const decoder = new TextDecoder();
+            const value = decoder.decode(event.target.value);
+            const msg = value.trim();
+
+            // Parse EQ data from ESP32: "EQ:0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15"
+            if (msg.startsWith('EQ:')) {
+                const gains = msg.substring(3).split(',').map(x => parseFloat(x));
+                if (gains.length === 16) {
+                    eqGains = gains;
+                    updateAllSliders();
+                    showResponse('EQ yüklendi');
+                    return;
+                }
+            }
+
+            // Parse custom presets: "CUSTOM1:0,1,2,..." or "CUSTOM2:0,1,2,..."
+            if (msg.startsWith('CUSTOM1:')) {
+                const gains = msg.substring(8).split(',').map(x => parseFloat(x));
+                if (gains.length === 16) {
+                    customPreset1 = gains;
+                    showResponse('Custom 1 yüklendi');
+                    return;
+                }
+            }
+            if (msg.startsWith('CUSTOM2:')) {
+                const gains = msg.substring(8).split(',').map(x => parseFloat(x));
+                if (gains.length === 16) {
+                    customPreset2 = gains;
+                    showResponse('Custom 2 yüklendi');
+                    return;
+                }
+            }
+
+            // ESP32 save confirmation
+            if (msg === 'Custom1 OK' || msg === 'Custom2 OK') {
+                showResponse('✓ ' + msg.replace(' OK', ' kaydedildi'));
+                return;
+            }
+
+            showResponse(msg);
+        }
+
+        // Send command
+        async function sendCommand(cmd) {
+            if (!isConnected || !rxCharacteristic) {
+                showResponse('Bağlı değil!');
+                return;
+            }
+
+            try {
+                const encoder = new TextEncoder();
+                await rxCharacteristic.writeValue(encoder.encode(cmd));
+                console.log('Sent:', cmd);
+            } catch (error) {
+                console.error('Send error:', error);
+                showResponse('Gönderim hatası');
+            }
+        }
+
+        function sendPreset(name) {
+            sendCommand(name);
+
+            // Update local state based on preset
+            const presets = {
+                'flat': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                'bass': [6, 5, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                'vocal': [-2, -1, 0, 2, 4, 4, 2, 0, -1, -2, -2, -1, 0, 0, 0, 0],
+                'rock': [4, 3, 1, 0, -1, 0, 2, 3, 4, 3, 2, 1, 0, 0, 0, 0]
+            };
+
+            if (name === 'custom1') {
+                eqGains = [...customPreset1];
+                updateAllSliders();
+            } else if (name === 'custom2') {
+                eqGains = [...customPreset2];
+                updateAllSliders();
+            } else if (presets[name]) {
+                eqGains = [...presets[name]];
+                updateAllSliders();
+            }
+        }
+
+        function saveCustomPreset(slot) {
+            // Check connection first!
+            if (!isConnected || !rxCharacteristic) {
+                showResponse('❌ Bağlı değil! Önce bağlan.');
+                return;
+            }
+
+            // Save current EQ as custom preset
+            if (slot === 1) {
+                customPreset1 = [...eqGains];
+            } else {
+                customPreset2 = [...eqGains];
+            }
+            const gains = eqGains.join(',');
+            sendCommand('SAVECUSTOM' + slot + ':' + gains);
+            showResponse('Kaydediliyor...');
+            // ESP32 will respond with "Custom1 OK" or "Custom2 OK"
+        }
+
+        // UI Updates
+        function updateStatus(state) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const btn = document.getElementById('connectBtn');
+
+            document.body.classList.remove('connecting');
+            dot.classList.remove('connected');
+            btn.classList.remove('connected');
+
+            switch (state) {
+                case 'connecting':
+                    document.body.classList.add('connecting');
+                    text.textContent = 'Bağlanıyor...';
+                    btn.textContent = '⏳ Bağlanıyor...';
+                    break;
+                case 'connected':
+                    dot.classList.add('connected');
+                    btn.classList.add('connected');
+                    text.textContent = 'Bağlı';
+                    btn.textContent = '✓ Bağlı (Kes)';
+                    break;
+                default:
+                    text.textContent = 'Bağlı Değil';
+                    btn.textContent = '🔗 Bağlan';
+            }
+        }
+
+        function showResponse(msg) {
+            const el = document.getElementById('response');
+            el.textContent = msg;
+            setTimeout(() => {
+                if (el.textContent === msg) el.textContent = '';
+            }, 3000);
+        }
+
+        // Init
+        initSliders();
+    </script>
+</body>
+
+</html>
