@@ -992,20 +992,18 @@
         async function confirmCopy() {
             if (!pendingCopyTarget) return;
 
-            const targetPreset = pendingCopyTarget === 1 ? 'custom1' : 'custom2';
-            const targetName = `C${pendingCopyTarget}`;
+            // Store target FIRST (hidePopup will reset pendingCopyTarget to null)
+            const targetNum = pendingCopyTarget;
+            const targetPreset = targetNum === 1 ? 'custom1' : 'custom2';
+            const targetName = `C${targetNum}`;
 
             hidePopup();
 
-            // Get current slider values BEFORE any changes
-            const sliders = document.querySelectorAll('.eq-slider');
-            const values = [];
-            sliders.forEach(slider => {
-                values.push(parseInt(slider.value));
-            });
+            // Get current EQ values from the eqGains array (not from DOM)
+            const values = [...eqGains];
 
-            // Update global preset variables
-            if (pendingCopyTarget === 1) {
+            // Update global preset variable (so sendPreset reads correct values)
+            if (targetNum === 1) {
                 customPreset1 = [...values];
             } else {
                 customPreset2 = [...values];
@@ -1014,32 +1012,8 @@
             // Save to localStorage
             localStorage.setItem(targetPreset, JSON.stringify(values));
 
-            // Update eqGains with the copied values
-            eqGains = [...values];
-
-            // Update button states (select the target preset button)
-            ['flat', 'bass', 'vocal', 'rock', 'custom1', 'custom2'].forEach(p => {
-                const btn = document.getElementById('btn-' + p);
-                if (btn) btn.classList.toggle('active', p === targetPreset);
-            });
-
-            // Show save button (since we're now on a custom preset)
-            document.getElementById('saveBtnContainer').classList.add('visible');
-
-            // Sliders already show correct values (we haven't changed them)
-            // Just update the display values
-            updateAllSliders();
-
-            // Send to ESP32 if connected
-            if (isConnected && rxCharacteristic) {
-                try {
-                    const cmd = `EQ:${values.join(',')}`;
-                    const encoder = new TextEncoder();
-                    await rxCharacteristic.writeValue(encoder.encode(cmd + '\n'));
-                } catch (e) {
-                    console.log('BLE send failed:', e);
-                }
-            }
+            // Switch to target preset (this updates UI and highlights the button)
+            sendPreset(targetPreset);
 
             showResponse(`✅ Ayarlar ${targetName}'e kopyalandı!`);
         }
