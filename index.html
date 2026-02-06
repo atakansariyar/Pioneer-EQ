@@ -852,8 +852,7 @@
                 isConnected = true;
                 updateStatus('connected');
 
-                // Play connection sound
-                playConnectSound();
+                // Sound is played by updateStatus, no need to call again
 
                 // Request current EQ state
                 setTimeout(() => sendCommand('GETALL'), 500);
@@ -913,11 +912,12 @@
             }
 
             // Parse custom presets: "CUSTOM1:0,1,2,..." or "CUSTOM2:0,1,2,..."
+            // These are received on initial connection - update data silently
             if (msg.startsWith('CUSTOM1:')) {
                 const gains = msg.substring(8).split(',').map(x => parseFloat(x));
                 if (gains.length === 16) {
                     customPreset1 = gains;
-                    showResponse('Custom 1 yüklendi');
+                    console.log('Custom1 data received');
                     return;
                 }
             }
@@ -925,7 +925,7 @@
                 const gains = msg.substring(8).split(',').map(x => parseFloat(x));
                 if (gains.length === 16) {
                     customPreset2 = gains;
-                    showResponse('Custom 2 yüklendi');
+                    console.log('Custom2 data received');
                     return;
                 }
             }
