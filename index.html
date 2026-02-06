@@ -1039,7 +1039,7 @@
                     btn.textContent = '⏳ Bağlanıyor...';
                     break;
                 case 'connected':
-                    playSound('connected');
+                    playConnectSound();
                     dot.classList.add('connected');
                     btn.classList.add('connected');
                     text.textContent = 'Bağlı';
@@ -1048,7 +1048,7 @@
                 default: // disconnected
                     // Only play disconnect sound if we were previously connected
                     if (dot.classList.contains('connected')) {
-                        playSound('disconnected');
+                        playDisconnectSound();
                     }
                     text.textContent = 'Bağlı Değil';
                     btn.textContent = '🔗 Bağlan';
