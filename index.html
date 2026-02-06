@@ -482,12 +482,10 @@
 <body>
     <div class="app-container">
         <div class="header">
-            <div class="logo" onclick="playSound('connected')" style="cursor: pointer;" title="Bağlanma sesini test et">
-                PIONEER EQ</div>
+            <div class="logo">PIONEER EQ</div>
             <div class="status">
                 <span class="status-dot" id="statusDot"></span>
-                <span id="statusText" onclick="playSound('disconnected')" style="cursor: pointer;"
-                    title="Bağlantı kesme sesini test et">Bağlı Değil</span>
+                <span id="statusText">Bağlı Değil</span>
             </div>
         </div>
 
@@ -753,7 +751,7 @@
                 }, 10000);
 
                 device = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'Pioneer_EQ' }],
+                    filters: [{ name: 'Pioneer' }],
                     optionalServices: [SERVICE_UUID]
                 });
 
