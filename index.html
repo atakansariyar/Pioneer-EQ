@@ -727,6 +727,82 @@
             }, 100);
         }
 
+        // =========================================================
+        // SOUND EFFECTS (Web Audio API)
+        // =========================================================
+
+        let audioContext = null;
+
+        function ensureAudioContext() {
+            if (!audioContext || audioContext.state === 'closed') {
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioContext.state === 'suspended') {
+                audioContext.resume();
+            }
+            return audioContext;
+        }
+
+        // Connection sound - ascending tones (happy)
+        function playConnectSound() {
+            try {
+                const ctx = ensureAudioContext();
+                const now = ctx.currentTime;
+
+                // Two ascending tones
+                [440, 660].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+
+                    gain.gain.setValueAtTime(0.3, now + i * 0.1);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.2);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now + i * 0.1);
+                    osc.stop(now + i * 0.1 + 0.2);
+                });
+
+                console.log('🔊 Connect sound played');
+            } catch (e) {
+                console.warn('Sound error:', e);
+            }
+        }
+
+        // Disconnection sound - descending tone (sad)
+        function playDisconnectSound() {
+            try {
+                const ctx = ensureAudioContext();
+                const now = ctx.currentTime;
+
+                // Two descending tones
+                [440, 330].forEach((freq, i) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+
+                    osc.type = 'sine';
+                    osc.frequency.value = freq;
+
+                    gain.gain.setValueAtTime(0.3, now + i * 0.15);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + i * 0.15 + 0.25);
+
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+
+                    osc.start(now + i * 0.15);
+                    osc.stop(now + i * 0.15 + 0.25);
+                });
+
+                console.log('🔊 Disconnect sound played');
+            } catch (e) {
+                console.warn('Sound error:', e);
+            }
+        }
+
         // BLE Connection
         async function toggleConnection() {
             if (isConnected) {
@@ -776,6 +852,9 @@
                 isConnected = true;
                 updateStatus('connected');
 
+                // Play connection sound
+                playConnectSound();
+
                 // Request current EQ state
                 setTimeout(() => sendCommand('GETALL'), 500);
 
@@ -802,6 +881,11 @@
         }
 
         function onDisconnected() {
+            // Play disconnect sound (only if was connected before)
+            if (isConnected) {
+                playDisconnectSound();
+            }
+
             isConnected = false;
             rxCharacteristic = null;
             txCharacteristic = null;
