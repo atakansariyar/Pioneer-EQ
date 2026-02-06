@@ -410,6 +410,54 @@
             transform: scale(0.95);
         }
 
+        /* Master Gain Slider */
+        .master-gain-container {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .master-gain-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: var(--text);
+        }
+
+        .master-gain-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .master-gain-row span {
+            min-width: 70px;
+            font-size: 15px;
+            font-weight: 600;
+            color: #f97316;
+        }
+
+        .master-slider {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, #dc2626 0%, #22c55e 100%);
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .master-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: white;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
         /* Popup Modal */
         .popup-overlay {
             display: none;
@@ -527,6 +575,15 @@
             <button class="copy-btn" onclick="showCopyConfirm(1)">📋 C1'e Kopyala</button>
             <button class="copy-btn" onclick="showCopyConfirm(2)">📋 C2'ye Kopyala</button>
         </div>
+
+        <div class="master-gain-container">
+            <div class="master-gain-label">🔊 Master Gain</div>
+            <div class="master-gain-row">
+                <span id="masterGainValue">0.0 dB</span>
+                <input type="range" id="masterGainSlider" class="master-slider" min="-18" max="0" step="0.5" value="0"
+                    oninput="onMasterGainChange(this.value)">
+            </div>
+        </div>
     </div><!-- /app-container -->
 
     <!-- Confirmation Popup -->
@@ -562,6 +619,7 @@
         let connectionTimeout = null;
         let activePreset = null;  // 'flat', 'bass', 'vocal', 'rock', 'custom1', 'custom2'
         let selectedBand = 0;  // Currently selected band for arrow controls (0-15)
+        let masterGainDb = 0;  // Master gain in dB (-18 to 0)
 
         // Initialize sliders
         function initSliders() {
@@ -701,6 +759,19 @@
                 updateBandDisplay();
                 debounceSend(selectedBand);
             }
+        }
+
+        // Master Gain Control
+        let masterGainDebounce = null;
+        function onMasterGainChange(value) {
+            masterGainDb = parseFloat(value);
+            document.getElementById('masterGainValue').textContent = masterGainDb.toFixed(1) + ' dB';
+
+            // Debounce BLE send (300ms)
+            clearTimeout(masterGainDebounce);
+            masterGainDebounce = setTimeout(() => {
+                sendCommand('MGAIN:' + masterGainDb.toFixed(1));
+            }, 300);
         }
 
         function highlightSelectedBand() {
@@ -926,6 +997,20 @@
                 if (gains.length === 16) {
                     customPreset2 = gains;
                     console.log('Custom2 data received');
+                    return;
+                }
+            }
+
+            // Parse master gain: "MGAIN:-6.0"
+            if (msg.startsWith('MGAIN:')) {
+                const gain = parseFloat(msg.substring(6));
+                if (!isNaN(gain)) {
+                    masterGainDb = gain;
+                    const slider = document.getElementById('masterGainSlider');
+                    const display = document.getElementById('masterGainValue');
+                    if (slider) slider.value = gain;
+                    if (display) display.textContent = gain.toFixed(1) + ' dB';
+                    console.log('Master gain received:', gain);
                     return;
                 }
             }
