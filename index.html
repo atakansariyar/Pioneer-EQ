@@ -898,7 +898,7 @@
                 }, 10000);
 
                 device = await navigator.bluetooth.requestDevice({
-                    acceptAllDevices: true,
+                    filters: [{ name: 'Pioneer' }],
                     optionalServices: [SERVICE_UUID]
                 });
 
